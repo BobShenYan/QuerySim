@@ -1,0 +1,11 @@
+# generated simulation output (regenerable from code + seed)
+results/
+figures/
+
+# Python housekeeping
+__pycache__/
+*.pyc
+
+# OS/editor clutter
+.DS_Store
+.vscode/
