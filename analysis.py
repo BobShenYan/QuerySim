@@ -175,3 +175,6 @@ def mean_sites_visited(result):
 def mean_range_visited(result):
     rv = result["range_visited"]
     return np.mean(rv) if len(rv) > 0 else np.nan
+
+def t_conv(result):
+    return result["t_conv"]
