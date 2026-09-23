@@ -2,6 +2,11 @@
 from kinetics import compute_spawn_rate, compute_off_rate, compute_slide_rate
 from observables import Observer
 
+import convergence
+#from convergence import compute_chi2_series, estimate_conv_time
+
+from concurrent.futures import ProcessPoolExecutor, as_completed # parrallel processing
+
 import numpy as np
 
 # specific to range_visited
@@ -48,9 +53,10 @@ def run_OCC_SSA_tracked(
     is_target = np.zeros(M, dtype=bool)
     is_target[target_sites] = True
 
-    tf_positions = np.empty(0, dtype=np.int64)
-    tf_birth = np.empty(0, dtype=np.float64)     # when each currently-bound TF attached
+    tf_positions = np.empty(M, dtype=np.int64)   # pre-allocating space of M slots
+    tf_birth = np.empty(M, dtype=np.float64)     # when each currently-bound TF attached
     tf_visited = []                               # set of distinct sites visited so far
+    n = 0
 
     occ = np.zeros(M, dtype=bool)
     target_count = 0
@@ -68,7 +74,7 @@ def run_OCC_SSA_tracked(
         if t >= Tmax:
             break
 
-        n = tf_positions.size
+        #n = tf_positions.size
         num_bound = target_count
 
         empty_sites = M - n
@@ -97,9 +103,13 @@ def run_OCC_SSA_tracked(
                 pos = rng.integers(0, M)
                 if not occ[pos]:
                     break
-            tf_positions = np.append(tf_positions, pos)
-            tf_birth = np.append(tf_birth, t)
+
+            tf_positions[n] = pos
+            tf_birth[n] = t
+            n += 1
+
             tf_visited.append({int(pos)})
+
             occ[pos] = True
             if is_target[pos]:
                 target_count += 1
@@ -110,7 +120,7 @@ def run_OCC_SSA_tracked(
             if n == 0:
                 continue
 
-            on_t = is_target[tf_positions]
+            on_t = is_target[tf_positions[:n]]
             weights = np.where(on_t, koff_t, koff_i)
             wsum = weights.sum()
             if wsum <= 0:
@@ -125,10 +135,9 @@ def run_OCC_SSA_tracked(
             # remove by swap-with-last across all three parallel arrays
             last = n - 1
             tf_positions[idx] = tf_positions[last]
-            tf_positions = tf_positions[:-1]
+            tf_birth[idx] = tf_birth[last] 
+            n -= 1
 
-            tf_birth[idx] = tf_birth[last] # move [-1] t into this now empty spot
-            tf_birth = tf_birth[:-1] # shrink tf_birth by 1
             tf_visited[idx] = tf_visited[last]
             tf_visited.pop()
 
@@ -143,8 +152,8 @@ def run_OCC_SSA_tracked(
                 for _ in range(rebind_tries):
                     cand = (old_pos + rng.integers(-rebind_radius, rebind_radius + 1)) % M
                     if not occ[cand]:
-                        tf_positions = np.append(tf_positions, cand)
-                        tf_birth = np.append(tf_birth, t)     # residence restarts at rebind site
+                        tf_positions[n] = cand
+                        tf_birth[n] = t    # residence restarts at rebind site
                         tf_visited.append({int(cand)})
                         occ[cand] = True
                         if is_target[cand]:
@@ -163,7 +172,7 @@ def run_OCC_SSA_tracked(
             if n == 0:
                 continue
 
-            on_t = is_target[tf_positions]
+            on_t = is_target[tf_positions[:n]]
             slide_weights = np.where(on_t, hop_rate * slide_scale_target, hop_rate)
             wsum_slide = slide_weights.sum()
             if wsum_slide <= 0:
@@ -193,9 +202,26 @@ def run_OCC_SSA_tracked(
 
     results = track1.get_results()
 
+    # extracting convergence values (t_conv)
+    profiles = results["profile_series"]
+    times = results["profile_times"]
+
+    # tchi2_targ = convergence.compute_tchi2_series(profiles,target_sites)
+    # _, _, _, t_conv = convergence.estimate_conv_time(tchi2_targ, times)
+
+    chi2_targ = convergence.compute_chi2_series(profiles)
+    _, _, _, t_conv = convergence.estimate_conv_time(chi2_targ, times)
+
+    # filter out None cases
+    converged = t_conv is not None
+
+    # don't use raise, othewise script will crash
+    if not converged:
+        print(f"Could not determine convergence time for koff_targt {koff_target} with seed {rng_seed}. Try different config or a longer simulation.")
+
     return {
         "end_t": t,
-        "tf_positions": tf_positions,
+        "tf_positions": tf_positions[:n], # recall that only n positions are filled with n TFs total
         "occ": occ,
         "target_count": target_count,
         "n_tf_on_target": n_tf_on_target,
@@ -203,5 +229,6 @@ def run_OCC_SSA_tracked(
         "residence_times": np.array(residence_times),
         "sites_visited_counts": np.array(sites_visited_counts),
         "range_visited": np.array(range_visited_list),
+        "t_conv": t_conv,
         **results,
     }
