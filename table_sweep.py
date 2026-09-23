@@ -9,7 +9,7 @@ import analysis
 base_config = dict(
     M=200,
     target_sites=[40, 50, 60, 140, 150, 160],
-    Tmax=2000.0, # 2e3 for some quick testing
+    Tmax=4.9e5, # 2e3 for some quick testing
     emit_every=500.0,
     koff_initial=0.12,
     koff_target=0.01,
@@ -27,7 +27,6 @@ sweeps = {
 
 }
 
-
 def summarize(values):
     values = np.asarray(values, dtype=float)
     values = values[~np.isnan(values)]
@@ -41,13 +40,15 @@ def summarize(values):
 all_results = {}   # param_name -> list of per-value summary dicts
 
 total_runs = sum(len(v) for v in sweeps.values()) * n_replicates
+# 4+4+3=11*10=110 runs
+
 pbar = tqdm(total=total_runs, desc="sweeping kon/koff_target/k_slide_eff")
 
 for param_name, param_values in sweeps.items():
     rows = []
 
     for value in param_values:
-        target_occs, nontarget_occs, res_times, sites_visited, range_visited = [], [], [], [], []
+        target_occs, nontarget_occs, res_times, sites_visited, range_visited, t_conv = [], [], [], [], [], []
 
         for seed in range(n_replicates):
             full_params = {**base_config, param_name: value, "rng_seed": seed}
@@ -61,6 +62,8 @@ for param_name, param_values in sweeps.items():
             sites_visited.append(analysis.mean_sites_visited(out))
             range_visited.append(analysis.mean_range_visited(out))
 
+            t_conv.append(analysis.t_conv(out))
+
             pbar.set_postfix({param_name: value})
             pbar.update(1)
 
@@ -70,6 +73,9 @@ for param_name, param_values in sweeps.items():
         row["residence_time_mean"], row["residence_time_sem"] = summarize(res_times)
         row["sites_visited_mean"], row["sites_visited_sem"] = summarize(sites_visited)
         row["range_visited_mean"], row["range_visited_sem"] = summarize(range_visited)
+
+        row["t_conv"], row["t_conv_sem"] = summarize(range_visited)
+
         rows.append(row)
 
     all_results[param_name] = rows
@@ -87,9 +93,10 @@ for param_name, rows in all_results.items():
             f"{r['residence_time_mean']:.3f} ± {r['residence_time_sem']:.3f}",
             f"{r['sites_visited_mean']:.3f} ± {r['sites_visited_sem']:.3f}",
             f"{r['range_visited_mean']:.3f} ± {r['range_visited_sem']:.3f}",
+            f"{r['t_conv']:.3f} ± {r['t_conv_sem']:.3f}",
         ]
         for r in rows
     ]
-    headers = ["value", "target_occ", "nontarget_occ", "residence_t", "sites_visited", "range_visited"]
+    headers = ["value", "target_occ", "nontarget_occ", "residence_t", "sites_visited", "range_visited", "t_conv"]
     print(tabulate(table, headers=headers, tablefmt="simple"))
  
