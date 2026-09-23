@@ -4,7 +4,7 @@ import numpy as np
 
 #.record method (active every iteration)
 
-class Observer:
+class Observer: # WIP: requires a lot more optimization
     def __init__(self, M, target_sites, emit_every, alpha=0.05):
         #methods won't need, but each instance/object will
         self.M = M 
@@ -44,8 +44,10 @@ class Observer:
         self.occtarg_times = []
 
     # record method used for each iteration
-    def record(self, occ, n, num_bound, dt, t):
-        self.window_occ_accum += occ.astype(float) * dt
+    def record(self, tf_positions, n, num_bound, dt, t):
+        #self.window_occ_accum += occ.astype(float) * dt # this doesn't make sense to do for each iteration, it's making a whole new copy
+        self.window_occ_accum[tf_positions[:n]] += dt
+        
         self.window_n_accum += n * dt
         self.window_num_bound += num_bound * dt
         self.window_time += dt
@@ -88,6 +90,7 @@ class Observer:
             "target_sites": self.target_sites,
             #"t_end": self.t,
 
+            # what does this represent again
             "occfrac_times": np.array(self.occfrac_times),
             "occfrac_series": np.array(self.occfrac_series),
 
