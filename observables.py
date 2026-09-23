@@ -44,9 +44,9 @@ class Observer: # WIP: requires a lot more optimization
         self.occtarg_times = []
 
     # record method used for each iteration
-    def record(self, tf_positions, n, num_bound, dt, t):
+    def record(self, occupied_sites, n, num_bound, dt, t):
         #self.window_occ_accum += occ.astype(float) * dt # this doesn't make sense to do for each iteration, it's making a whole new copy
-        self.window_occ_accum[tf_positions[:n]] += dt
+        self.window_occ_accum[occupied_sites] += dt
         
         self.window_n_accum += n * dt
         self.window_num_bound += num_bound * dt

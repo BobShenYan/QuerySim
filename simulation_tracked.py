@@ -93,7 +93,7 @@ def run_OCC_SSA_tracked(
         t_old = t
         t += dt
 
-        track1.record(occ, n, num_bound, dt, t)
+        track1.record(tf_positions[:n], n, num_bound, dt, t)
 
         u = rng.random() * R_tot
 
