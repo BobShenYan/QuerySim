@@ -1,0 +1,34 @@
+{
+  "params": {
+    "swept_param": "koff_target",
+    "swept_values": [
+      0.006,
+      0.01,
+      0.02,
+      0.06,
+      0.12
+    ],
+    "compared": "triplet 0 vs triplet 1 (p_center_given_flanks)",
+    "n_replicates_per_value": 10,
+    "base_config": {
+      "M": 200,
+      "target_sites": [
+        40,
+        50,
+        60,
+        140,
+        150,
+        160
+      ],
+      "Tmax": 49000.0,
+      "emit_every": 500.0,
+      "koff_initial": 0.12,
+      "kon": 6.28e-22,
+      "k_slide_eff": 1,
+      "rng_seed": 1
+    }
+  },
+  "seed": null,
+  "date_generated": "2026-09-24",
+  "source_figure": "figures/p_given_t0_vs_t1_koff_target.png"
+}
