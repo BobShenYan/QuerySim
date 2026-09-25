@@ -53,6 +53,12 @@ def run_OCC_SSA_tracked(
     is_target = np.zeros(M, dtype=bool)
     is_target[target_sites] = True
 
+    triplets = target_sites.reshape(-1, 3) #
+    n_triplets = triplets.shape[0] #
+    time_flanks_occupied = np.zeros(n_triplets)
+    time_center_given_flanks = np.zeros(n_triplets)
+    time_center_total = np.zeros(n_triplets)
+
     tf_positions = np.empty(M, dtype=np.int64)   # pre-allocating space of M slots
     tf_birth = np.empty(M, dtype=np.float64)     # when each currently-bound TF attached
     tf_visited = []                               # set of distinct sites visited so far
@@ -94,6 +100,14 @@ def run_OCC_SSA_tracked(
         t += dt
 
         track1.record(tf_positions[:n], n, num_bound, dt, t)
+
+        for i, (left, center, right) in enumerate(triplets):
+            if occ[left] and occ[right]:
+                time_flanks_occupied[i] += dt
+                if occ[center]:
+                    time_center_given_flanks[i] += dt # implement a table outputin sweep, this is also equivalent to transcription
+            if occ[center]:
+                time_center_total[i] += dt
 
         u = rng.random() * R_tot
 
@@ -206,11 +220,11 @@ def run_OCC_SSA_tracked(
     profiles = results["profile_series"]
     times = results["profile_times"]
 
-    # tchi2_targ = convergence.compute_tchi2_series(profiles,target_sites)
-    # _, _, _, t_conv = convergence.estimate_conv_time(tchi2_targ, times)
+    tchi2_targ = convergence.compute_tchi2_series(profiles,target_sites)
+    _, _, _, t_conv = convergence.estimate_conv_time(tchi2_targ, times)
 
-    chi2_targ = convergence.compute_chi2_series(profiles)
-    _, _, _, t_conv = convergence.estimate_conv_time(chi2_targ, times)
+    # chi2_targ = convergence.compute_chi2_series(profiles)
+    # _, _, _, t_conv = convergence.estimate_conv_time(chi2_targ, times)
 
     # filter out None cases
     converged = t_conv is not None
@@ -218,6 +232,13 @@ def run_OCC_SSA_tracked(
     # don't use raise, othewise script will crash
     if not converged:
         print(f"Could not determine convergence time for koff_targt {koff_target} with seed {rng_seed}. Try different config or a longer simulation.")
+
+    p_center_given_flanks = np.where(
+        time_flanks_occupied > 0,
+        time_center_given_flanks / np.where(time_flanks_occupied > 0, time_flanks_occupied, 1),
+        np.nan,
+    )
+    p_center_unconditional = time_center_total / t
 
     return {
         "end_t": t,
@@ -230,5 +251,7 @@ def run_OCC_SSA_tracked(
         "sites_visited_counts": np.array(sites_visited_counts),
         "range_visited": np.array(range_visited_list),
         "t_conv": t_conv,
+        "p_center_given_flanks": p_center_given_flanks,
+        "p_center_unconditional": p_center_unconditional,
         **results,
     }
