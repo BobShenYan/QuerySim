@@ -11,7 +11,7 @@ import sim_io
 base_config = dict(
     M=200,
     target_sites=[40, 50, 60, 140, 150, 160], # 2 triplets: (40,50,60), (140,150,160)
-    Tmax=2e3,
+    Tmax=4.9e4, #49000
     emit_every=500.0,
     koff_initial=0.12,
     koff_target=0.01,
@@ -20,11 +20,12 @@ base_config = dict(
 )
 target_sites = np.asarray(base_config["target_sites"])
 triplets = target_sites.reshape(-1, 3)
+n_triplets = triplets.shape[0] # (2 rows, 3 cols) [0]
 
 sweeps = {
     "kon": [6.28e-23, 6.28e-22, 6.28e-21, 6.28e-20],
     "koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
-    "k_slide_eff": [1e-1, 1, 10, 100],
+    "k_slide_eff": [1e-1, 1, 0, 10, 100],
 }
 n_replicates = 10
 
@@ -34,31 +35,46 @@ def run_one_replicate(full_params): # unpack the specific config for each rep
     # raw: 
     triplet_raw, triplet_strict, triplet_blocked = [], [], []
     for left, center, right in triplets:
-        m = analysis.compute_blocking_metric(
-            out, target_sites, flanked_site=center, edge_sites=(left, right),
-            profile_mode="all",
-        )
-        triplet_raw.append(m["center_ratio_raw"])
-        triplet_strict.append(m["center_ratio_strict"])
-        triplet_blocked.append(m["blocked_strict"])
+        try:
+            m = analysis.compute_blocking_metric(
+                out, target_sites, flanked_site=center, edge_sites=(left, right),
+                profile_mode="all",
+            )
+            triplet_raw.append(m["center_ratio_raw"])
+            triplet_strict.append(m["center_ratio_strict"])
+            triplet_blocked.append(m["blocked_strict"])
+        except ValueError:
+            triplet_raw.append(np.nan)
+            triplet_strict.append(np.nan)
+            triplet_blocked.append(False)
 
         tag = "_".join(f"{k}{v}" for k, v in full_params.items() if k in ("kon", "koff_target", "k_slide_eff"))
         filename = f"results/table_{tag}_seed{full_params['rng_seed']}.npz"
         sim_io.save_result(out, full_params, full_params["rng_seed"], filename)
 
-    return {
+    result = {
         "target_occ": analysis.target_occupancy(out),
         "nontarget_occ": analysis.non_target_occupancy(out, base_config["M"], base_config["target_sites"]),
         "residence_time": analysis.mean_residence_time(out),
         "sites_visited": analysis.mean_sites_visited(out),
         "range_visited": analysis.mean_range_visited(out),
         "t_conv": out["t_conv"],
+        "time_center_given_flanks": out["time_center_given_flanks"],
         "ratio_raw": np.mean(triplet_raw),
         "ratio_strict": np.nanmean(triplet_strict),
         "block_freq": np.mean(triplet_blocked),
+        #"p_center_given_flanks": analysis.mean_p_center_given_flanks(out),
+        #"p_center_unconditional": analysis.mean_p_center_unconditional(out),
         "out": out,          # keeping the raw result metrics so we can save it and use it in the future
         "full_params": full_params,
     }
+
+    # per-triplet instead of averaged
+    for i in range(n_triplets):
+        result[f"p_given_t{i}"] = out["p_center_given_flanks"][i]
+        result[f"p_uncond_t{i}"] = out["p_center_unconditional"][i]
+
+    return result
 
 def summarize(values): # wrapper for processing table outputs
     values = np.asarray(values, dtype=float)
@@ -75,10 +91,12 @@ if __name__ == "__main__":
     pbar = tqdm(total=total_runs, desc="sweeping kon/koff_target/k_slide_eff")
 
     # leaving a couple cores free
-    max_workers = max(1, os.cpu_count() - 2)
+    max_workers = max(1, os.cpu_count() - 2) # saftety net of 1 core
 
     metric_names = ["target_occ", "nontarget_occ", "residence_time", "sites_visited",
-                     "range_visited", "t_conv", "ratio_raw", "ratio_strict", "block_freq"]
+                     "range_visited", "t_conv", "time_center_given_flanks", "ratio_raw", "ratio_strict", "block_freq"]
+    for i in range(n_triplets):
+        metric_names += [f"p_given_t{i}", f"p_uncond_t{i}"]
 
     for param_name, param_values in sweeps.items():
         rows = []
@@ -118,12 +136,23 @@ if __name__ == "__main__":
                 f"{r['sites_visited_mean']:.3f} ± {r['sites_visited_sem']:.3f}",
                 f"{r['range_visited_mean']:.3f} ± {r['range_visited_sem']:.3f}",
                 f"{r['t_conv_mean']:.3f} ± {r['t_conv_sem']:.3f}",
+                f"{r['time_center_given_flanks_mean']:.3f} ± {r['time_center_given_flanks_sem']:.3f}",
                 f"{r['ratio_raw_mean']:.4f} ± {r['ratio_raw_sem']:.4f}",
                 f"{r['ratio_strict_mean']:.4f} ± {r['ratio_strict_sem']:.4f}",
                 f"{r['block_freq_mean']:.3f} ± {r['block_freq_sem']:.3f}",
+            ] + [
+                f"{r[f'p_given_t{i}_mean']:.4f} ± {r[f'p_given_t{i}_sem']:.4f}"
+                for i in range(n_triplets)
+            ] + [
+                f"{r[f'p_uncond_t{i}_mean']:.4f} ± {r[f'p_uncond_t{i}_sem']:.4f}"
+                for i in range(n_triplets)
             ]
             for r in rows
         ]
         headers = ["value", "target_occ", "nontarget_occ", "residence_t", "sites_visited",
-                   "range_visited", "t_conv", "ratio_raw", "ratio_strict", "block_freq"]
+                   "range_visited", "t_conv","time_center_given_flanks", "ratio_raw", "ratio_strict", "block_freq"]
+        headers += [h for i in range(n_triplets) for h in (f"p_given_t{i}", f"p_uncond_t{i}")]
         print(tabulate(table, headers=headers, tablefmt="simple"))
+
+
+
