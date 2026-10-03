@@ -251,6 +251,7 @@ def run_OCC_SSA_tracked(
         "sites_visited_counts": np.array(sites_visited_counts),
         "range_visited": np.array(range_visited_list),
         "t_conv": t_conv,
+        "time_center_given_flanks": time_center_given_flanks,
         "p_center_given_flanks": p_center_given_flanks,
         "p_center_unconditional": p_center_unconditional,
         **results,
