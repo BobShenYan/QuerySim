@@ -131,7 +131,7 @@ def get_post_convergence_profiles(result, target_sites, t_start=None, profile_mo
     if t_start is None:
         raise ValueError("Could not determine convergence time. Try a longer simulation.")
 
-    mask = times >= t_start
+    mask = times >= t_start # filter just for times after convergence
     profiles_post = profiles[mask]
     times_post = times[mask]
 
@@ -141,7 +141,7 @@ def get_post_convergence_profiles(result, target_sites, t_start=None, profile_mo
     if profile_mode == "all":
         return profiles_post, times_post, float(t_start)
     if profile_mode == "last_n":
-        n_use = min(last_n, len(profiles_post))
+        n_use = min(last_n, len(profiles_post)) # len here gives the num of rows
         return profiles_post[-n_use:], times_post[-n_use:], float(t_start)
     raise ValueError("profile_mode must be 'all' or 'last_n'")
 
@@ -178,3 +178,10 @@ def mean_range_visited(result):
 
 def t_conv(result):
     return result["t_conv"]
+
+# averaging the triplets
+def mean_p_center_given_flanks(result):
+    return np.nanmean(result["p_center_given_flanks"])
+
+def mean_p_center_unconditional(result):
+    return np.nanmean(result["p_center_unconditional"])
