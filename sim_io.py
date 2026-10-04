@@ -8,7 +8,9 @@ def save_result(results, params, seed, path):
     
     # create results dierctory if it doesn't exist yet
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    np.savez(path, results=results, params=params, seed=seed)
+    temp = path[:-4] + ".tmp.npz"
+    np.savez(temp, results=results, params=params, seed=seed)
+    os.replace(temp, path)
 
 def load_result(path):
     #Load a previously saved result. Returns (results_dict, params_dict, seed).
