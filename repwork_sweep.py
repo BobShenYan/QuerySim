@@ -7,17 +7,22 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from simulation_tracked import run_OCC_SSA_tracked
 import analysis
 import sim_io
+import glob
 
 base_config = dict(
     M=200,
     target_sites=[40, 50, 60, 140, 150, 160], # 2 triplets: (40,50,60), (140,150,160)
-    Tmax=4.9e4, #49000
+    Tmax=2000, #49000
     emit_every=500.0,
     koff_initial=0.12,
     koff_target=0.01,
     kon=6.28e-22,
     k_slide_eff=1.0,
 )
+
+# manual naming option, for config changes, while still keeping prior config data
+run_name = "repwork_Tmax2e3"
+
 target_sites = np.asarray(base_config["target_sites"])
 triplets = target_sites.reshape(-1, 3)
 n_triplets = triplets.shape[0] # (2 rows, 3 cols) [0]
@@ -25,13 +30,28 @@ n_triplets = triplets.shape[0] # (2 rows, 3 cols) [0]
 sweeps = {
     "kon": [6.28e-23, 6.28e-22, 6.28e-21, 6.28e-20],
     "koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
-    "k_slide_eff": [1e-1, 1, 0, 10, 100],
+    "k_slide_eff": [1e-1, 1.0, 0, 10, 100],
 }
-n_replicates = 10
+n_replicates = 2
 
-def run_one_replicate(full_params): # unpack the specific config for each rep
-    out = run_OCC_SSA_tracked(**full_params)
+def run_one_replicate(full_params, param_name): # unpack the specific config for each rep
 
+    out = None
+
+    tag = "_".join(f"{k}{v}" for k, v in full_params.items() if k in ("kon", "koff_target", "k_slide_eff"))
+    filename = f"results/{run_name}/{param_name}/table_{tag}_seed{full_params['rng_seed']}.npz" # jobs final filename
+
+    # file config already exists
+    if os.path.exists(filename): 
+        loaded, params, _ = sim_io.load_result(filename)
+        if params == full_params:
+            out = loaded
+
+    # new config, needs sim
+    if out is None:
+        out = run_OCC_SSA_tracked(**full_params)
+        sim_io.save_result(out, full_params, full_params["rng_seed"], filename)
+    
     # raw: 
     triplet_raw, triplet_strict, triplet_blocked = [], [], []
     for left, center, right in triplets:
@@ -47,10 +67,6 @@ def run_one_replicate(full_params): # unpack the specific config for each rep
             triplet_raw.append(np.nan)
             triplet_strict.append(np.nan)
             triplet_blocked.append(False)
-
-        tag = "_".join(f"{k}{v}" for k, v in full_params.items() if k in ("kon", "koff_target", "k_slide_eff"))
-        filename = f"results/table_{tag}_seed{full_params['rng_seed']}.npz"
-        sim_io.save_result(out, full_params, full_params["rng_seed"], filename)
 
     result = {
         "target_occ": analysis.target_occupancy(out),
@@ -107,7 +123,7 @@ if __name__ == "__main__":
             jobs = [{**base_config, param_name: value, "rng_seed": seed} for seed in range(n_replicates)]
 
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
-                futures = {pool.submit(run_one_replicate, job): job["rng_seed"] for job in jobs}
+                futures = {pool.submit(run_one_replicate, job, param_name): job["rng_seed"] for job in jobs}
                 for fut in as_completed(futures):
                     metrics = fut.result()
                     for k in metric_names:
