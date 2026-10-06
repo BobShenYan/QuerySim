@@ -125,7 +125,13 @@ if __name__ == "__main__":
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
                 futures = {pool.submit(run_one_replicate, job, param_name): job["rng_seed"] for job in jobs}
                 for fut in as_completed(futures):
-                    metrics = fut.result()
+                    try:
+                        metrics = fut.result()
+                    except Exception as e:
+                        print(f"FAILED {param_name}={value} seed={futures[fut]}: {e!r}") # print repr for debugging
+                        pbar.update(1)
+                        continue
+
                     for k in metric_names:
                         collected[k].append(metrics[k])
 
@@ -168,7 +174,11 @@ if __name__ == "__main__":
         headers = ["value", "target_occ", "nontarget_occ", "residence_t", "sites_visited",
                    "range_visited", "t_conv","time_center_given_flanks", "ratio_raw", "ratio_strict", "block_freq"]
         headers += [h for i in range(n_triplets) for h in (f"p_given_t{i}", f"p_uncond_t{i}")]
-        print(tabulate(table, headers=headers, tablefmt="simple"))
+        table = tabulate(table, headers=headers, tablefmt="simple")
+        print(table)
 
+        os.makedirs(f"results/{run_name}", exist_ok=True)
+        with open(f"results/{run_name}/table_{param_name}.txt", "w", encoding="utf-8") as file:
+            file.write(table + "\n")
 
 
