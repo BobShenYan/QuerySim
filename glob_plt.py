@@ -24,10 +24,16 @@ import glob
 import numpy as np
 import sim_io
 import analysis
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# manually inputting run_name for now, needs to be synced with repwork_sweep.py:
+run_name = "repwork_Tmax2e3"
+
 def reload_sweep_curve(param_name, triplets, target_sites, metric="ratio_raw"):
-    paths = sorted(glob.glob(f"results/table_*{param_name}*_seed*.npz"))
+    paths = sorted(glob.glob(f"results/{run_name}/{param_name}/table_*_seed*.npz"))
+    paths = [p for p in paths if ".tmp" not in p]
 
     by_value = {}
     for path in paths:
@@ -64,6 +70,7 @@ def reload_sweep_curve(param_name, triplets, target_sites, metric="ratio_raw"):
 
     return param_values, means, sems
 
+
 def plot_two_param_comparison(curve_a, curve_b, label_a, label_b, ylabel, save_to=None, title=None):
     fig, ax = plt.subplots(figsize=(9, 5))
 
@@ -83,7 +90,8 @@ def plot_two_param_comparison(curve_a, curve_b, label_a, label_b, ylabel, save_t
         plt.show()
 
 def reload_p_given_curve(param_name, triplet_index):
-    paths = sorted(glob.glob(f"results/table_*{param_name}*_seed*.npz"))
+    paths = sorted(glob.glob(f"results/{run_name}/{param_name}/table_*_seed*.npz"))
+    paths = [p for p in paths if ".tmp" not in p]
 
     by_value = {}
     for path in paths:
@@ -123,7 +131,8 @@ def reload_metric_curve(param_name, metric_name):
     }
     func = metric_funcs[metric_name]
 
-    paths = sorted(glob.glob(f"results/table_*{param_name}*_seed*.npz"))
+    paths = sorted(glob.glob(f"results/{run_name}/{param_name}/table_*_seed*.npz"))
+    paths = [p for p in paths if ".tmp" not in p]
 
     by_value = {}
     for path in paths:
@@ -140,3 +149,5 @@ def reload_metric_curve(param_name, metric_name):
         sems.append(np.std(vals, ddof=1)/np.sqrt(len(vals)) if len(vals) > 1 else 0.0)
 
     return param_values, means, sems
+
+# 
