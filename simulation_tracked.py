@@ -77,6 +77,9 @@ def run_OCC_SSA_tracked(
     sites_visited_counts = []   # number of distinct sites visited, appended on every unbind
     range_visited_list = []   # circular span (max extent) of sites visited, appended on every unbind
 
+    if redirect not in ("off", "on"): # check redirect mode is valild
+        raise ValueError("redirect mode must be 'off' or 'off'")
+
     for ev in range(max_events):
         if t >= Tmax:
             break
@@ -206,10 +209,9 @@ def run_OCC_SSA_tracked(
             if occ[cand]:
                 if redirect == "off": # rejection instead of redirection
                     cand = old_pos 
-                if redirect == "on":
+                else:
                     alt = (old_pos - step) % M
                     cand = alt if not occ[alt] else old_pos
-                raise ValueError("redirect mode must be 'off' or 'off'")
 
             tf_positions[idx] = cand
             tf_visited[idx].add(int(cand))   # sets automatically ignore duplicates
