@@ -40,7 +40,8 @@ def run_OCC_SSA_tracked(
     p_rebind=0.0,
     rebind_radius=5,
     rebind_tries=10,
-    emit_every=500.0
+    emit_every=500.0,
+    redirect="off"
     ):
 
     t = 0.0
@@ -203,8 +204,11 @@ def run_OCC_SSA_tracked(
             step = -1 if rng.random() < 0.5 else 1
             cand = (old_pos + step) % M
             if occ[cand]:
-                alt = (old_pos - step) % M
-                cand = alt if not occ[alt] else old_pos
+                if redirect == "off": # rejection instead of redirection
+                    cand = old_pos 
+                else:
+                    alt = (old_pos - step) % M
+                    cand = alt if not occ[alt] else old_pos
 
             tf_positions[idx] = cand
             tf_visited[idx].add(int(cand))   # sets automatically ignore duplicates
@@ -254,5 +258,6 @@ def run_OCC_SSA_tracked(
         "time_center_given_flanks": time_center_given_flanks,
         "p_center_given_flanks": p_center_given_flanks,
         "p_center_unconditional": p_center_unconditional,
+        "redirect":redirect, # redirection mode
         **results,
     }
