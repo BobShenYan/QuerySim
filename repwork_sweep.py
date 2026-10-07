@@ -18,6 +18,7 @@ base_config = dict(
     koff_target=0.01,
     kon=6.28e-22,
     k_slide_eff=10.0,
+    redirect="off",
 )
 
 # manual naming option, for config changes, while still keeping prior config data

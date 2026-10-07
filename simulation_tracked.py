@@ -206,9 +206,10 @@ def run_OCC_SSA_tracked(
             if occ[cand]:
                 if redirect == "off": # rejection instead of redirection
                     cand = old_pos 
-                else:
+                if redirect == "on":
                     alt = (old_pos - step) % M
                     cand = alt if not occ[alt] else old_pos
+                raise ValueError("redirect mode must be 'off' or 'off'")
 
             tf_positions[idx] = cand
             tf_visited[idx].add(int(cand))   # sets automatically ignore duplicates

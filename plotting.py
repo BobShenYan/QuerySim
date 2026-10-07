@@ -26,8 +26,7 @@ def plot_profile(result, save_to=None, title=None):
         plt.close()
     else:
         plt.show()
- 
- 
+
 def plot_occfrac(result, save_to=None, title=None):
     # Overall DNA occupancy fraction (n/M) over time
     plt.figure(figsize=(10, 5))
