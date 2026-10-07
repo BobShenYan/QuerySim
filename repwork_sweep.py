@@ -12,7 +12,7 @@ import glob
 base_config = dict(
     M=200,
     target_sites=[40, 50, 60, 140, 150, 160], # 2 triplets: (40,50,60), (140,150,160)
-    Tmax=2000, #49000
+    Tmax=4.9e5, #49000
     emit_every=500.0,
     koff_initial=0.12,
     koff_target=0.01,
@@ -21,7 +21,7 @@ base_config = dict(
 )
 
 # manual naming option, for config changes, while still keeping prior config data
-run_name = "repwork_Tmax2e3"
+run_name = "repwork_Tmax4.9e5"
 
 target_sites = np.asarray(base_config["target_sites"])
 triplets = target_sites.reshape(-1, 3)
@@ -32,7 +32,7 @@ sweeps = {
     "koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
     "k_slide_eff": [1e-1, 1.0, 0, 10, 100],
 }
-n_replicates = 2
+n_replicates = 5
 
 def run_one_replicate(full_params, param_name): # unpack the specific config for each rep
 
