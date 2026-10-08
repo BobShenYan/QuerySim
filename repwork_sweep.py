@@ -17,6 +17,8 @@ base_config = dict(
     koff_initial=0.12,
     koff_target=0.01,
     kon=6.28e-22,
+    kon_target_factor=1.0,
+    slide_to_targ=1.0,
     k_slide_eff=10.0,
     redirect="off",
 )
@@ -29,11 +31,11 @@ triplets = target_sites.reshape(-1, 3)
 n_triplets = triplets.shape[0] # (2 rows, 3 cols) [0]
 
 sweeps = {
-    "kon": [6.28e-23, 6.28e-22, 6.28e-21, 6.28e-20],
-    #"koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
-    #"k_slide_eff": [1e-1, 1.0, 0, 10, 100],
+    #"kon": [6.28e-23, 6.28e-22, 6.28e-21, 6.28e-20],
+    # "koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
+    "k_slide_eff": [1e-1, 1.0, 0, 10, 100],
 }
-n_replicates = 10
+n_replicates = 30
 
 def run_one_replicate(full_params, param_name): # unpack the specific config for each rep
 
