@@ -9,7 +9,7 @@ def plot_profile(result, save_to=None, title=None):
     target_sites = result.get("target_sites")
  
     plt.figure(figsize=(7, 4))
-    for i, prof in enumerate(profiles):
+    for i, prof in enumerate(profiles[::5]):
         alpha = 0.15 if i < len(profiles) - 5 else 0.6
         plt.plot(prof, color="black", alpha=alpha)
  
