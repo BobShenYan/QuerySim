@@ -33,7 +33,7 @@ sweeps = {
     #"koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
     #"k_slide_eff": [1e-1, 1.0, 0, 10, 100],
 }
-n_replicates = 30
+n_replicates = 10
 
 def run_one_replicate(full_params, param_name): # unpack the specific config for each rep
 
