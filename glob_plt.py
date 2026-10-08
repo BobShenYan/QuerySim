@@ -149,5 +149,3 @@ def reload_metric_curve(param_name, metric_name):
         sems.append(np.std(vals, ddof=1)/np.sqrt(len(vals)) if len(vals) > 1 else 0.0)
 
     return param_values, means, sems
-
-# 
