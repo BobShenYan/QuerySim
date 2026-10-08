@@ -30,6 +30,8 @@ def run_OCC_SSA_tracked(
     koff_initial=0.12,
     koff_target=0.01,
     kon=6.28e-21,
+    kon_target_factor=1.0, # set this >1 for target_site 3D binding preference
+    slide_to_targ=1.0,
     TF_conc=1e-9,
     N_A=6.022e26,
     Tmax=10000.0,
@@ -80,6 +82,9 @@ def run_OCC_SSA_tracked(
     if redirect not in ("off", "on"): # check redirect mode is valild
         raise ValueError("redirect mode must be 'off' or 'on'")
 
+    if slide_to_targ != 1 and redirect == "on":
+        raise ValueError("redirection with bias sliding into targ is currently not allowed")
+
     for ev in range(max_events):
         if t >= Tmax:
             break
@@ -92,7 +97,10 @@ def run_OCC_SSA_tracked(
         n_on_target = n_tf_on_target
         n_off_target = n - n_on_target
 
-        Rspawn = compute_spawn_rate(kon, TF_conc, N_A, empty_sites, c_on, num_bound)
+        empty_target = len(target_sites) - n_tf_on_target # empty target sites
+
+        Rspawn = compute_spawn_rate(kon, TF_conc, N_A, empty_sites, c_on, num_bound,
+                                    empty_target, kon_target_factor)
         Roff, koff_t, koff_i, slide_scale_target = compute_off_rate(n_on_target, n_off_target, koff_target, koff_initial, num_bound, c_off)
         Rslide = compute_slide_rate(n_on_target, n_off_target, hop_rate, koff_t, koff_i)
 
@@ -117,11 +125,15 @@ def run_OCC_SSA_tracked(
 
         # spawn
         if u < Rspawn:
-            while True:
-                pos = rng.integers(0, M)
-                if not occ[pos]:
-                    break
-
+            E_i = empty_sites - empty_target
+            u2 = rng.random() * (E_i + kon_target_factor*empty_target)
+            if u2 < kon_target_factor*empty_target:
+                pos = rng.choice(target_sites[~occ[target_sites]]) # rng from empty target sites
+            else:
+                while True: 
+                    pos = rng.integers(0, M) 
+                    if not occ[pos] and not is_target[pos]: # empty and not a target_site?
+                        break
             tf_positions[n] = pos
             tf_birth[n] = t
             n += 1
