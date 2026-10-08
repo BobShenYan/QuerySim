@@ -29,9 +29,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # manually inputting run_name for now, needs to be synced with repwork_sweep.py:
-run_name = "repwork_Tmax2e3"
+# run_name = "blockrepwork_Tmax4.9e5"
 
-def reload_sweep_curve(param_name, triplets, target_sites, metric="ratio_raw"):
+def reload_sweep_curve(run_name, param_name, triplets, target_sites, metric="ratio_raw"):
     paths = sorted(glob.glob(f"results/{run_name}/{param_name}/table_*_seed*.npz"))
     paths = [p for p in paths if ".tmp" not in p]
 
