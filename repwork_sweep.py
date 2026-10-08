@@ -32,8 +32,8 @@ n_triplets = triplets.shape[0] # (2 rows, 3 cols) [0]
 
 sweeps = {
     #"kon": [6.28e-23, 6.28e-22, 6.28e-21, 6.28e-20],
-    # "koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
-    "k_slide_eff": [1e-1, 1.0, 0, 10, 100],
+    "koff_target": [0.006, 0.01, 0.02, 0.06, 0.12],
+    #"k_slide_eff": [1e-1, 1.0, 0, 10, 100],
 }
 n_replicates = 30
 
