@@ -22,7 +22,7 @@ base_config = dict(
 )
 
 # manual naming option, for config changes, while still keeping prior config data
-run_name = "redirectrepwork_Tmax4.9e5"
+run_name = "redirectoff_repwork_Tmax4.9e5"
 
 target_sites = np.asarray(base_config["target_sites"])
 triplets = target_sites.reshape(-1, 3)
