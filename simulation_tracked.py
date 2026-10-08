@@ -78,7 +78,7 @@ def run_OCC_SSA_tracked(
     range_visited_list = []   # circular span (max extent) of sites visited, appended on every unbind
 
     if redirect not in ("off", "on"): # check redirect mode is valild
-        raise ValueError("redirect mode must be 'off' or 'on")
+        raise ValueError("redirect mode must be 'off' or 'on'")
 
     for ev in range(max_events):
         if t >= Tmax:
