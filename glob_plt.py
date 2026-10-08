@@ -89,7 +89,7 @@ def plot_two_param_comparison(curve_a, curve_b, label_a, label_b, ylabel, save_t
     else:
         plt.show()
 
-def reload_p_given_curve(param_name, triplet_index):
+def reload_p_given_curve(run_name, param_name, triplet_index):
     paths = sorted(glob.glob(f"results/{run_name}/{param_name}/table_*_seed*.npz"))
     paths = [p for p in paths if ".tmp" not in p]
 
@@ -121,7 +121,7 @@ def reload_p_given_curve(param_name, triplet_index):
 #     title=f"p_center_given_flanks: triplet 0 vs triplet 1 (sweeping {param_name})",
 # )
 
-def reload_metric_curve(param_name, metric_name):
+def reload_metric_curve(run_name, param_name, metric_name):
     metric_funcs = {
         "target_occ": analysis.target_occupancy,
         "residence_time": analysis.mean_residence_time,
